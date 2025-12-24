@@ -49,7 +49,7 @@ will_it_fit(Highlight *hl, u64 added)
 }
 
 inline static void
-highlight_buffer_fill(Highlight *hl, char *str, u64 len)
+hl_buffer_fill(Highlight *hl, char *str, u64 len)
 {
   will_it_fit(hl, len);
   memcpy(&hl->buffer[hl->size], str, len);
@@ -57,7 +57,7 @@ highlight_buffer_fill(Highlight *hl, char *str, u64 len)
 }
 
 bool
-highlight_entry_add(Highlight *hl, char *view, u64 view_size)
+hl_entry_add(Highlight *hl, char *view, u64 view_size)
 {
   u64   i, l1, l2;
   char  *vim_begin, *vim_end;
@@ -67,26 +67,26 @@ highlight_entry_add(Highlight *hl, char *view, u64 view_size)
   vim_begin = "syn match cType \"\\<";
   l2        = strlen(vim_end);
   l1        = strlen(vim_begin);
-  highlight_buffer_fill(hl, vim_begin, l1);
+  hl_buffer_fill(hl, vim_begin, l1);
   while (i < view_size)
   {
     if (is_white_space(view[i]))
     {
-      highlight_buffer_fill(hl, vim_end, l2);
+      hl_buffer_fill(hl, vim_end, l2);
       break;
     }
-    highlight_buffer_fill(hl, &view[i++], 1);
+    hl_buffer_fill(hl, &view[i++], 1);
   }
   return true;
 }
 
 Highlight
-highlight_get(char *path, char *type)
+hl_get(char *path, char *type)
 {
   u64       i, view_size, type_size;
   File      file;
   char      *temp, *view;
-  Highlight highlight;
+  Highlight hl;
 
   if ( file_exist_open_map_ro(path, &file) )
   {
@@ -94,9 +94,9 @@ highlight_get(char *path, char *type)
     exit(EXIT_FAILURE);
   }
 
-  heap_alloc_dz(sizeof(char) * BEGIN_CAPACITY_BUFFER, highlight.buffer);
-  highlight.size     = 0;
-  highlight.capacity = BEGIN_CAPACITY_BUFFER;
+  heap_alloc_dz(sizeof(char) * BEGIN_CAPACITY_BUFFER, hl.buffer);
+  hl.size     = 0;
+  hl.capacity = BEGIN_CAPACITY_BUFFER;
 
   i         = 0;
   view      = file.buffer.view;
@@ -107,7 +107,7 @@ highlight_get(char *path, char *type)
     /* @Note: Find the "type" */
     if ( search_string_with_sentinel(&view[i], view_size - i, '\n', type, type_size) )
     {
-      highlight_entry_add(&highlight, &view[i], view_size - i);
+      hl_entry_add(&hl, &view[i], view_size - i);
     }
     /* @Note: Move to the next line */
     while (i < view_size && view[i] != '\n') i++;
@@ -115,25 +115,25 @@ highlight_get(char *path, char *type)
   }
 
   if ( file_close(&file) ) printf("File %s could not be closed\n", file.path);
-  return highlight;
+  return hl;
 }
 
 i32
 main(i32 argc, char **argv)
 {
   char      *typeref, *path, *defaut, *syntax;
-  Highlight highlight;
+  Highlight hl;
 
   syntax  = "syntax.vim";
   defaut  = "C:\\vc_env\\useful_tags\\combined_tags.txt";
   typeref = "\tt\ttyperef:struct";
   path    = (argc < 2) ? defaut : argv[1];
 
-  highlight = highlight_get(path, typeref);
-  if (!file_dump(syntax, highlight.buffer, highlight.size))
+  hl = hl_get(path, typeref);
+  if (!file_dump(syntax, hl.buffer, hl.size))
     printf("Created %s and dumped content\n", syntax);
 
-  heap_free_dz(highlight.buffer);
+  heap_free_dz(hl.buffer);
   return 0;
 }
 
