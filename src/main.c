@@ -38,17 +38,6 @@ is_white_space(char c)
 }
 
 static inline void
-ensure_buffer_capacity(Highlight *hl)
-{
-  cm_assert(hl->capacity > 0);
-  if ( hl->size >= hl->capacity )
-  {
-    hl->capacity = 2 * hl->capacity;
-    heap_realloc_dz(sizeof(char) * hl->capacity, hl->buffer, hl->buffer);
-  }
-}
-
-static inline void
 will_it_fit(Highlight *hl, u64 added)
 {
   cm_assert(hl->capacity > 0);
@@ -57,6 +46,14 @@ will_it_fit(Highlight *hl, u64 added)
     hl->capacity = (2 * hl->capacity) + added;
     heap_realloc_dz(sizeof(char) * hl->capacity, hl->buffer, hl->buffer);
   }
+}
+
+inline static void
+highlight_buffer_fill(Highlight *hl, char *str, u64 len)
+{
+  will_it_fit(hl, len);
+  memcpy(&hl->buffer[hl->size], str, len);
+  hl->size += len;
 }
 
 bool
@@ -70,22 +67,15 @@ highlight_entry_add(Highlight *hl, char *view, u64 view_size)
   vim_begin = "syn match cType \"\\<";
   l2        = strlen(vim_end);
   l1        = strlen(vim_begin);
-  will_it_fit(hl, l1);
-  memcpy(&hl->buffer[hl->size], vim_begin, l1);
-  hl->size += l1;
+  highlight_buffer_fill(hl, vim_begin, l1);
   while (i < view_size)
   {
     if (is_white_space(view[i]))
     {
-      /* ensure_buffer_capacity(hl);
-         hl->buffer[hl->size++] = '\n'; */
-      will_it_fit(hl, l2);
-      memcpy(&hl->buffer[hl->size], vim_end, l2);
-      hl->size += l2;
+      highlight_buffer_fill(hl, vim_end, l2);
       break;
     }
-    ensure_buffer_capacity(hl);
-    hl->buffer[hl->size++] = view[i++];
+    highlight_buffer_fill(hl, &view[i++], 1);
   }
   return true;
 }
