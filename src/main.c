@@ -67,7 +67,7 @@ highlight_entry_add(Highlight *hl, char *view, u64 view_size)
 
   i = 0;
   vim_end   = "\\>\"\n";
-  vim_begin = "syn match \"\\<";
+  vim_begin = "syn match cType \"\\<";
   l2        = strlen(vim_end);
   l1        = strlen(vim_begin);
   will_it_fit(hl, l1);
@@ -98,8 +98,11 @@ highlight_get(char *path, char *type)
   char      *temp, *view;
   Highlight highlight;
 
-  if (!file_exist_open_map_ro(path, &file)) printf("File %s is open.\n", path);
-  else printf("File %s could not be open somehow..\n", path);
+  if ( file_exist_open_map_ro(path, &file) )
+  {
+    printf("File %s could not be open somehow..\n", path);
+    exit(EXIT_FAILURE);
+  }
 
   heap_alloc_dz(sizeof(char) * BEGIN_CAPACITY_BUFFER, highlight.buffer);
   highlight.size     = 0;
@@ -122,7 +125,6 @@ highlight_get(char *path, char *type)
   }
 
   if ( file_close(&file) ) printf("File %s could not be closed\n", file.path);
-  else printf("File %s closed.\n", file.path);
   return highlight;
 }
 
