@@ -1,7 +1,9 @@
 #define SUB_CONSOLE
 #include "chihab.h"
 #include "cm_io.c"
+#include "cm_string.c"
 #include "cm_win32.c"
+#include "cm_proc_threads.c"
 
 #define BEGIN_CAPACITY_BUFFER 32000
 
@@ -10,32 +12,6 @@ typedef struct Highlight
   char *buffer;
   u64  size, capacity;
 } Highlight;
-
-bool
-search_string_with_sentinel(char* str, u32 l1, char sentinel, char *find, u32 l2)
-{
-  u32 i, j;
-
-  i = 0;
-  while (i < l1 && str[i] != sentinel)
-  {
-    j = 0;
-    if (str[i] == find[0])
-    {
-      while (i < l1 && j < l2 && str[i] != sentinel && str[i] == find[j])
-      { j++; i++; }
-      if (j == l2) return true;
-    }
-    i++;
-  }
-  return false;
-}
-
-static inline bool
-is_white_space(char c)
-{
-  return (c == '\t' || c == ' ' || c == '\v' || c == '\n' || c == '\r');
-}
 
 static inline void
 will_it_fit(Highlight *hl, u64 added)
@@ -118,6 +94,13 @@ hl_get(char *path, char *type)
   return hl;
 }
 
+bool
+print_process_name(PROCESSENTRY32 entry, void *data)
+{
+  printf("%s\n", entry.szExeFile);
+  return true;
+}
+
 i32
 main(i32 argc, char **argv)
 {
@@ -128,6 +111,8 @@ main(i32 argc, char **argv)
   defaut  = "C:\\vc_env\\useful_tags\\combined_tags.txt";
   typeref = "\tt\ttyperef:struct";
   path    = (argc < 2) ? defaut : argv[1];
+
+  process_list_do(print_process_name, NULL);
 
   hl = hl_get(path, typeref);
   if (!file_dump(syntax, hl.buffer, hl.size))
